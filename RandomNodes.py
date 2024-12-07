@@ -350,7 +350,6 @@ class CSVPromptLoader:
         if not prompt_csv:
             return ("", "")
 
-        row_index = row_number - 1
 
         if row_control == "Increment":
             row_index = (CSVPromptLoader.last_row + 1) % len(prompt_csv)
@@ -359,7 +358,9 @@ class CSVPromptLoader:
 
         CSVPromptLoader.last_row = row_index
 
-        selected_row = prompt_csv[row_index]
+        selected_row = prompt_csv[row_number]
+        row_number = row_index
+        
         positive_prompt = selected_row[0]
         negative_prompt = selected_row[1]
 
