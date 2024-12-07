@@ -1,9 +1,11 @@
+import torch  # Añadir esta importación al inicio del archivo
 import random
 import pandas as pd
 import numpy as np
-import torch  # Añadir esta importación al inicio del archivo
+import folder_paths
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+import os
 
 class RandomColorNode:
     last_seed = 0
@@ -215,29 +217,10 @@ class RandomGeometricShapeNode:
         ax.axis('off')
         ax.set_facecolor(background_color)
 
-        # Define possible shapes
-        shapes = ['circle', 'rectangle', 'triangle']
-        shape = random.choice(shapes)
-        
-        # Calculate size for the shape (30% of the smallest dimension)
+        # Generate only a rectangle
         size = min(width, height) * 0.3
-        
-        if shape == 'circle':
-            circle = plt.Circle((pos_x, pos_y), size / 2, color=shape_color)
-            ax.add_patch(circle)
-            
-        elif shape == 'rectangle':
-            rect = Rectangle((pos_x - size / 2, pos_y - size / 2), size, size, color=shape_color)
-            ax.add_patch(rect)
-            
-        else:  # triangle
-            points = [
-                (pos_x, pos_y + size / 2),  # top
-                (pos_x - size / 2, pos_y - size / 2),  # bottom left
-                (pos_x + size / 2, pos_y - size / 2)   # bottom right
-            ]
-            triangle = plt.Polygon(points, color=shape_color)
-            ax.add_patch(triangle)
+        rect = Rectangle((pos_x - size / 2, pos_y - size / 2), size, size, color=shape_color)
+        ax.add_patch(rect)
 
         # Convertir imagen a tensor
         fig.canvas.draw()
@@ -278,70 +261,125 @@ class ColorPaletteNode:
             }
         }
 
-    RETURN_TYPES = ("LATENT",)
+    RETURN_TYPES = ("IMAGE",)
     FUNCTION = "execute"
     CATEGORY = "Randomizer"
 
     @staticmethod
+    def hex_to_rgb(hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+
+    @staticmethod
     def execute(width, height, color1, color2, color3, color4):
-        colors = [color1, color2, color3, color4]
-        print(f"Usando colores hexadecimales: {colors}")
+        rgb_color = ColorPaletteNode.hex_to_rgb(color1)  # Convert hex to RGB
+        print(f"Using RGB color: {rgb_color}")
 
-        # Validar ancho y alto
         if width <= 0 or height <= 0:
-            raise ValueError("El ancho y el alto deben ser mayores que cero.")
+            raise ValueError("Width and height must be greater than zero.")
 
-        # Crear la figura y el eje
         fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)
         ax.set_xlim(0, width)
         ax.set_ylim(0, height)
         ax.axis('off')
 
-        # Calcular el ancho de cada rectángulo
-        rect_width = width // 4  # Dividir en 4 columnas
-        rect_height = height
-        for i, color in enumerate(colors):
-            # Cambiar las coordenadas para disposición horizontal
-            x = i * rect_width
-            rect = Rectangle((x, 0), rect_width, rect_height, color=color)
-            ax.add_patch(rect)
+        rect = Rectangle((0, 0), width, height, color=rgb_color)
+        ax.add_patch(rect)
 
-        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)  # Ajustar el tamaño de la figura
-        
-        # Convertir la figura a imagen
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
         fig.canvas.draw()
         img_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
         img_array = img_array.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         plt.close(fig)
 
-        # Convertir a tensor
         img_array = img_array.astype(np.float32).transpose(2, 0, 1) / 255.0
         tensor = torch.from_numpy(img_array)
+        return (tensor,)
 
-        # Convertir a tensor latente
-        latent_tensor = tensor.unsqueeze(0)  # Añadir dimensión de batch
+class CSVPrompt:
+    """
+    Loads csv file with prompts. The CSV file should have two columns: 'positive prompt' and 'negative prompt'.
+    """
 
-        # Asegurarse de que el tensor latente tenga la forma correcta (batch_size, channels, height, width)
-        if latent_tensor.dim() == 3:
-            latent_tensor = latent_tensor.unsqueeze(0)
+    last_row = 0
 
-        # Asegurarse de que el tensor latente tenga 4 dimensiones
-        if latent_tensor.dim() != 4:
-            raise ValueError("El tensor latente debe tener 4 dimensiones (batch_size, channels, height, width)")
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "csv_file": ("STRING", {"default": "/path/to/prompts.csv"}),
+                "row_number": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "display": "number",
+                }),
+                "row_control": (["Increment", "Randomize"],),
+            },
+        }
 
-        return (latent_tensor,)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("positive prompt", "negative prompt")
+    FUNCTION = "execute"
+    CATEGORY = "CSV Loaders"   
+
+    @staticmethod
+    def load_prompt_csv(prompt_path: str):
+        """Loads csv file with prompts. The CSV file should have two columns: 'positive prompt' and 'negative prompt'.
+        
+        Returns:
+            list: List of rows with prompts.
+        """
+        prompts = []
+        if not os.path.exists(prompt_path):
+            print(f"""Error. No prompts.csv found at {prompt_path}. Please check the path and try again.""")
+            return prompts
+        try:
+            data = pd.read_csv(prompt_path)
+            if "positive prompt" not in data.columns or "negative prompt" not in data.columns:
+                raise ValueError("The CSV file must contain 'positive prompt' and 'negative prompt' columns.")
+            prompts = data[["positive prompt", "negative prompt"]].values.tolist()
+        except Exception as e:
+            print(f"""Error loading prompts.csv. Please check the path and try again.
+                    Error: {e}
+            """)
+        return prompts
+
+    def execute(self, csv_file, row_number, row_control):
+        prompt_csv = self.load_prompt_csv(csv_file)
+        if not prompt_csv:
+            return ("", "")
+
+        row_index = row_number - 1
+
+        if row_control == "Increment":
+            row_index = (CSVPrompt.last_row + 1) % len(prompt_csv)
+        elif row_control == "Randomize":
+            row_index = random.randint(0, len(prompt_csv) - 1)
+
+        CSVPrompt.last_row = row_index
+
+        selected_row = prompt_csv[row_index]
+        positive_prompt = selected_row[0]
+        negative_prompt = selected_row[1]
+
+        return (positive_prompt, negative_prompt)
+
 
 # Exportar el nodo para que sea reconocido por ComfyUI.
 NODE_CLASS_MAPPINGS = {
     "RandomTagSelector": RandomTagSelector,
     "RandomColorNode": RandomColorNode,
     "RandomGeometricShapeNode": RandomGeometricShapeNode,
-    "ColorPaletteNode": ColorPaletteNode
+    "ColorPaletteNode": ColorPaletteNode,
+    "CSVPromptLoader": CSVPromptLoader
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "RandomTagSelector": "Random Tag Selector",
     "RandomColorNode": "Random Color Node",
     "RandomGeometricShapeNode": "Random Geometric Shape",
-    "ColorPaletteNode": "Color Palette Generator"
+    "ColorPaletteNode": "Color Palette Generator",
+    "CSVPromptLoader": "CSV Prompt Loader"
+
 }
