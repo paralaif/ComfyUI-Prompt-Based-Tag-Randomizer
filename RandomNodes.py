@@ -297,7 +297,7 @@ class ColorPaletteNode:
         tensor = torch.from_numpy(img_array)
         return (tensor,)
 
-class CSVPrompt:
+class CSVPromptLoader:
     """
     Loads csv file with prompts. The CSV file should have two columns: 'positive prompt' and 'negative prompt'.
     """
@@ -338,7 +338,7 @@ class CSVPrompt:
             data = pd.read_csv(prompt_path)
             if "positive prompt" not in data.columns or "negative prompt" not in data.columns:
                 raise ValueError("The CSV file must contain 'positive prompt' and 'negative prompt' columns.")
-            prompts = data[["positive prompt", "negative prompt"]].values.tolist()
+            prompts = data[["positive prompt", "negative prompt"]].iloc[1:].values.tolist()  # Ignore the first row
         except Exception as e:
             print(f"""Error loading prompts.csv. Please check the path and try again.
                     Error: {e}
@@ -353,11 +353,11 @@ class CSVPrompt:
         row_index = row_number - 1
 
         if row_control == "Increment":
-            row_index = (CSVPrompt.last_row + 1) % len(prompt_csv)
+            row_index = (CSVPromptLoader.last_row + 1) % len(prompt_csv)
         elif row_control == "Randomize":
             row_index = random.randint(0, len(prompt_csv) - 1)
 
-        CSVPrompt.last_row = row_index
+        CSVPromptLoader.last_row = row_index
 
         selected_row = prompt_csv[row_index]
         positive_prompt = selected_row[0]
@@ -367,12 +367,12 @@ class CSVPrompt:
 
 
 # Exportar el nodo para que sea reconocido por ComfyUI.
-NODE_CLASS_MAPPINGS = {
+CSVPromptINGS = {
     "RandomTagSelector": RandomTagSelector,
     "RandomColorNode": RandomColorNode,
     "RandomGeometricShapeNode": RandomGeometricShapeNode,
     "ColorPaletteNode": ColorPaletteNode,
-    "CSVPrompt": CSVPrompt
+    "CSVPrompt": CSVPromptLoader
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
