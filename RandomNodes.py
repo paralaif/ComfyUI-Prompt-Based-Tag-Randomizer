@@ -338,7 +338,7 @@ class CSVPromptLoader:
             data = pd.read_csv(prompt_path)
             if "positive prompt" not in data.columns or "negative prompt" not in data.columns:
                 raise ValueError("The CSV file must contain 'positive prompt' and 'negative prompt' columns.")
-            prompts = data[["positive prompt", "negative prompt"]].iloc[1:].values.tolist()  # Ignore the first row
+            prompts = data[["positive prompt", "negative prompt"]].values.tolist()  # Ignore the first row
         except Exception as e:
             print(f"""Error loading prompts.csv. Please check the path and try again.
                     Error: {e}
@@ -350,7 +350,7 @@ class CSVPromptLoader:
         if not prompt_csv:
             return ("", "")
 
-        row_number = row_number - 1
+        #row_number = row_number - 1
 
         if row_control == "Increment":
             row_index = (CSVPromptLoader.last_row + 1) % len(prompt_csv)
