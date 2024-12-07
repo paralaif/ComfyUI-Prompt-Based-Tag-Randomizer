@@ -356,8 +356,6 @@ class CSVPromptLoader:
         elif row_control == "Randomize":
             row_index = random.randint(0, len(prompt_csv) - 1)
 
-        CSVPromptLoader.last_row = row_index
-
         selected_row = prompt_csv[row_number]
         row_number = row_index
         
@@ -373,7 +371,7 @@ CSVPromptINGS = {
     "RandomColorNode": RandomColorNode,
     "RandomGeometricShapeNode": RandomGeometricShapeNode,
     "ColorPaletteNode": ColorPaletteNode,
-    "CSVPrompt": CSVPromptLoader
+    "CSVPromptLoader": CSVPromptLoader
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -381,6 +379,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "RandomColorNode": "Random Color Node",
     "RandomGeometricShapeNode": "Random Geometric Shape",
     "ColorPaletteNode": "Color Palette Generator",
-    "CSVPrompt": "CSV Prompt Generator"
+    "CSVPromptLoader": "CSV Prompt Generator"
 
 }
