@@ -350,7 +350,7 @@ class CSVPromptLoader:
         if not prompt_csv:
             return ("", "")
 
-        #row_number = row_number - 1
+        row_number = row_number - 1
 
         if row_control == "Increment":
             row_index = (CSVPromptLoader.last_row + 1) % len(prompt_csv)
