@@ -372,7 +372,7 @@ NODE_CLASS_MAPPINGS = {
     "RandomColorNode": RandomColorNode,
     "RandomGeometricShapeNode": RandomGeometricShapeNode,
     "ColorPaletteNode": ColorPaletteNode,
-    "CSVPromptLoader": CSVPromptLoader
+    "CSVPrompt": CSVPrompt
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -380,6 +380,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "RandomColorNode": "Random Color Node",
     "RandomGeometricShapeNode": "Random Geometric Shape",
     "ColorPaletteNode": "Color Palette Generator",
-    "CSVPromptLoader": "CSV Prompt Loader"
+    "CSVPrompt": "CSV Prompt Generator"
 
 }
