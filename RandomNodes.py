@@ -366,7 +366,7 @@ class CSVPromptLoader:
 
 
 # Exportar el nodo para que sea reconocido por ComfyUI.
-CSVPromptINGS = {
+NODE_CLASS_MAPPINGS = {
     "RandomTagSelector": RandomTagSelector,
     "RandomColorNode": RandomColorNode,
     "RandomGeometricShapeNode": RandomGeometricShapeNode,
